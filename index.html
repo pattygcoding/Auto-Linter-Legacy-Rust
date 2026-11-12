@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>JSON/YAML Formatter (Rust + WASM)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: monospace;
+            background: #111;
+            color: #eee;
+            padding: 1em;
+        }
+
+        textarea,
+        pre {
+            display: block;
+            width: 100%;
+            height: 200px;
+            background: #222;
+            color: #0f0;
+            padding: 1em;
+            overflow: auto;
+            tab-size: 4;
+        }
+
+        textarea {
+            margin-top: 1em;
+            resize: vertical;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+        }
+
+        button,
+        select {
+            margin-top: 1em;
+            padding: 0.5em 1em;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>JSON/YAML Formatter</h1>
+    <label for="formatSelect">Format as:</label>
+    <select id="formatSelect">
+        <option value="auto">Auto-detect</option>
+        <option value="json">JSON</option>
+        <option value="yaml">YAML</option>
+    </select>
+    <textarea id="input" aria-label="JSON or YAML input" spellcheck="false" placeholder="Paste JSON or YAML here..."></textarea>
+    <button id="formatBtn" disabled>Format</button>
+    <pre id="output" role="status" aria-live="polite">Loading formatter...</pre>
+
+    <script src="formatter.js"></script>
+    <script>
+        const formatButton = document.getElementById("formatBtn");
+        const output = document.getElementById("output");
+
+        function showLoadError(error) {
+            formatButton.disabled = true;
+            output.textContent = "Unable to load formatter: " + error.message;
+        }
+
+        async function initializeFormatter() {
+            try {
+                await FormatterWasm.init("formatter.wasm");
+                if (typeof window.formatInput !== "function") {
+                    throw new Error("Formatter did not initialize");
+                }
+                formatButton.onclick = () => {
+                    try {
+                        output.textContent = window.formatInput(
+                            document.getElementById("input").value,
+                            document.getElementById("formatSelect").value
+                        );
+                    } catch (error) {
+                        output.textContent = "Formatting failed: " + error.message;
+                    }
+                };
+                formatButton.disabled = false;
+                output.textContent = "Waiting for input...";
+            } catch (error) {
+                showLoadError(error);
+            }
+        }
+
+        initializeFormatter();
+    </script>
+</body>
+
+</html>
